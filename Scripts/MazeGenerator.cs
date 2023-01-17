@@ -8,7 +8,6 @@ public class MazeGenerator : MonoBehaviour
 {
     [SerializeField] MazeCell cellPrefab;
     [SerializeField] GameObject mazeRunner;
-
     [SerializeField] GameObject cellFX;
     [SerializeField] TMP_InputField mazeWitdh;
     [SerializeField] TMP_InputField mazeHeight;
@@ -43,7 +42,6 @@ public class MazeGenerator : MonoBehaviour
     public List<MazeCell> cells = new List<MazeCell>();  
     public List<MazeCell> currentPath = new List<MazeCell>();
     public List<MazeCell> completedCells = new List<MazeCell>(); 
-    public List<MazeCell> walkedCells = new List<MazeCell>();
 
     void Update() 
     {
@@ -53,19 +51,21 @@ public class MazeGenerator : MonoBehaviour
         wallHeightIsNumber = int.TryParse(mazeWallHeight.text, out wallHeight);
 
         //Checks height and witdh and displays warning if needed.
+
+        
         if (mazeSizeX > 250)
         {
             witdhWarning.text = "Can't be higher than 250!";
         }
         else if (mazeSizeX >= 150) 
         {
-            witdhWarning.text = "Takes a long time!";
+            witdhWarning.text = "May take some time!";
         } 
-        else if (mazeSizeX < 10)
+        else if (mazeSizeX < 10 && mazeSizeX > 0 )
         {
             witdhWarning.text = "Must be at least 10";
         } 
-        else 
+        else
         {
            witdhWarning.text = "";
         }
@@ -76,9 +76,9 @@ public class MazeGenerator : MonoBehaviour
         } 
         else if (mazeSizeY >= 150) 
         {
-            heightWarning.text = "Takes a long time!";
+            heightWarning.text = "May take some time!";
         }
-        else if (mazeSizeY < 10)
+        else if (mazeSizeY < 10 && mazeSizeY > 0)
         {
             heightWarning.text = "Must be at least 10";
         } 
@@ -112,12 +112,14 @@ public class MazeGenerator : MonoBehaviour
                     }
 
                     SetWallHeight(wallHeight);
+
                     lastMaze = StartCoroutine(GenerateMaze(mazeSizeX, mazeSizeY)); 
 
                 }
             }
     }
 
+    //Set wall height
     public void SetWallHeight(int wallHeight)
     {
         cellPrefab.GetComponent<MazeCell>().SetHeight(wallHeight);
@@ -157,9 +159,12 @@ public class MazeGenerator : MonoBehaviour
 
                 MazeCell newCell = Instantiate(cellPrefab, cellPos, Quaternion.identity, transform);
 
-                if (y == 0 | x == 0 | x == sizeX - 1 | y == sizeY - 1)
+                if (particleMode)
                 {
-                    Instantiate(cellFX, new Vector3(cellPos.x, -3, cellPos.z), Quaternion.identity, transform);        
+                    if (y == 0 | x == 0 | x == sizeX - 1 | y == sizeY - 1)
+                    {
+                        Instantiate(cellFX, new Vector3(cellPos.x, -3, cellPos.z), Quaternion.identity, transform);        
+                    }
                 }
 
                 //Create the entrance of the maze
@@ -176,17 +181,14 @@ public class MazeGenerator : MonoBehaviour
 
                 cells.Add(newCell);
 
-                if (fastMode == false)
+                if (!fastMode)
                 {
                     yield return null;
                 }
             }
         }
 
-            for(int i = 1; i < 5; i++)
-            {
-                GameObject.Find("mazeRunner" + i).GetComponent<MazeRunner>().EnableRunners();
-            }
+        mazeRunner.GetComponent<MazeRunner>().EnableRunners();
     }
 
 

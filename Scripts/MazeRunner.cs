@@ -6,6 +6,8 @@ public class MazeRunner : MonoBehaviour
 {   
     public GameObject mazeGenerator;
     private MazeGenerator mazeGeneratorScript;
+    private Coroutine lastMazeRunner = null;
+
 
     private int mazeSizeX;
     private int mazeSizeY;
@@ -16,17 +18,21 @@ public class MazeRunner : MonoBehaviour
     List<MazeCell> cells;
     List<MazeCell> currentPath = new List<MazeCell>();
     List<MazeCell> completedCells;
-    List<MazeCell> walkedCells;
 
 
     public void EnableRunners()
     {
+        //Stops previous Maze Runner from running
+        if (lastMazeRunner != null)
+        {
+            StopCoroutine(lastMazeRunner); 
+        }
+
         //Definies or resets the values of local variables 
         mazeGenerator = GameObject.Find("Maze Generator");
         mazeGeneratorScript = mazeGenerator.GetComponent<MazeGenerator>();
 
-        //Definies or resets the values of local variables 
-        currentPath = new List<MazeCell>();
+        currentPath = mazeGeneratorScript.currentPath;
 
         cells = mazeGeneratorScript.cells;
         mazeSizeX = mazeGeneratorScript.mazeSizeX;
@@ -35,13 +41,13 @@ public class MazeRunner : MonoBehaviour
         fastMode = mazeGeneratorScript.fastMode;
         wallHeight = mazeGeneratorScript.wallHeight;
 
-        StartCoroutine(StartMazeRunner(mazeSizeX, mazeSizeY));
+        //Starts Maze Runner
+        lastMazeRunner = StartCoroutine(StartMazeRunner(mazeSizeX, mazeSizeY));
     }
 
 
     IEnumerator StartMazeRunner(int sizeX, int sizeY)
     {
-        walkedCells = mazeGeneratorScript.walkedCells;
         completedCells = mazeGeneratorScript.completedCells; 
         
         //Choose starting cell;
@@ -60,12 +66,11 @@ public class MazeRunner : MonoBehaviour
             int currentCellY = currentCellIndex % sizeY;
 
 
-            //Check if right neighbor is available
+            //Checks if right neighbor is available
             if (currentCellX < sizeX -1)
             {
                 if (!completedCells.Contains(cells[currentCellIndex + sizeY]) &&
-                    !currentPath.Contains(cells[currentCellIndex + sizeY]) &&
-                    !walkedCells.Contains(cells[currentCellIndex + sizeY]))
+                    !currentPath.Contains(cells[currentCellIndex + sizeY]))
                 {
                     possibleDirections.Add(1);
                     possibleNextCells.Add(currentCellIndex + sizeY);
@@ -73,12 +78,11 @@ public class MazeRunner : MonoBehaviour
                 }
             }
 
-            //check if left neighbor is available
+            //Checks if left neighbor is available
             if (currentCellX > 0)
             {
                 if (!completedCells.Contains(cells[currentCellIndex - sizeY]) &&
-                    !currentPath.Contains(cells[currentCellIndex - sizeY]) &&
-                    !walkedCells.Contains(cells[currentCellIndex - sizeY]))
+                    !currentPath.Contains(cells[currentCellIndex - sizeY]))
                 {
                     possibleDirections.Add(2);
                     possibleNextCells.Add(currentCellIndex - sizeY);
@@ -86,24 +90,22 @@ public class MazeRunner : MonoBehaviour
                 }
             }
 
-            //check if top neighbor is available
+            //Checks if top neighbor is available
             if(currentCellY < sizeY -1)
             {
                 if (!completedCells.Contains(cells[currentCellIndex + 1]) &&
-                    !currentPath.Contains(cells[currentCellIndex + 1]) &&
-                    !walkedCells.Contains(cells[currentCellIndex + 1]))
+                    !currentPath.Contains(cells[currentCellIndex + 1]))
                 {
                     possibleDirections.Add(3);
                     possibleNextCells.Add(currentCellIndex + 1);
                 }
             }
 
-            //Check if bottom neighbor is available
+            //Checks if bottom neighbor is available
             if(currentCellY > 0)
             {
                 if (!completedCells.Contains(cells[currentCellIndex - 1]) &&
-                    !currentPath.Contains(cells[currentCellIndex - 1]) &&
-                    !walkedCells.Contains(cells[currentCellIndex - 1]))
+                    !currentPath.Contains(cells[currentCellIndex - 1]))
                 {
                     possibleDirections.Add(4);
                     possibleNextCells.Add(currentCellIndex - 1);
@@ -118,38 +120,43 @@ public class MazeRunner : MonoBehaviour
                 int chosenDirection = Random.Range(0, possibleDirections.Count);
                 MazeCell chosenCell = cells[possibleNextCells[chosenDirection]];
 
-                switch(possibleDirections[chosenDirection])
+                if (chosenCell != null)
                 {
-                    case 1:
-                        chosenCell.RemoveWall(1);
-                        currentPath[currentPath.Count -1].RemoveWall(0);
-                        break;
-                    case 2:
-                        chosenCell.RemoveWall(0);
-                        currentPath[currentPath.Count -1].RemoveWall(1);
-                        break;
-                    case 3:
-                        chosenCell.RemoveWall(3);
-                        currentPath[currentPath.Count -1].RemoveWall(2);
-                        break;
+                    switch(possibleDirections[chosenDirection])
+                    {
+                        case 1:
+                            chosenCell.RemoveWall(1);
+                            currentPath[currentPath.Count -1].RemoveWall(0);
+                            break;
+                        case 2:
+                            chosenCell.RemoveWall(0);
+                            currentPath[currentPath.Count -1].RemoveWall(1);
+                            break;
+                        case 3:
+                            chosenCell.RemoveWall(3);
+                            currentPath[currentPath.Count -1].RemoveWall(2);
+                            break;
 
-                    case 4:
-                        chosenCell.RemoveWall(2);
-                        currentPath[currentPath.Count -1].RemoveWall(3);
-                        break;
+                        case 4:
+                            chosenCell.RemoveWall(2);
+                            currentPath[currentPath.Count -1].RemoveWall(3);
+                            break;
+                    }
+                    
+                    currentPath.Add(chosenCell);
+                    chosenCell.SetState(CellState.Current);
                 }
-
-                currentPath.Add(chosenCell);
-                walkedCells.Add(chosenCell);
-                chosenCell.SetState(CellState.Current);
             }
             else
             {
                 //Backtracks by going through the cells in the currentPath list and checking if they have an untouched neighbor.
-                completedCells.Add(currentPath[currentPath.Count -1]);
+                if (currentPath[currentPath.Count - 1] != null)
+                {
+                    completedCells.Add(currentPath[currentPath.Count -1]);
 
-                currentPath[currentPath.Count - 1].SetState(CellState.Completed);
-                currentPath.RemoveAt(currentPath.Count -1 );
+                    currentPath[currentPath.Count - 1].SetState(CellState.Completed);
+                    currentPath.RemoveAt(currentPath.Count -1 );
+                }
             }
                                     
             if (fastMode == false)
